@@ -429,7 +429,7 @@ with tab_bot:
         m3.metric("⏭ Saltados", len(st.session_state.done))
         m4.metric("🎟️ Créditos", f"{creditos_restantes}/{LIMITE_CREDITOS}")
 
-        st.markdown("**Comentarios por batch:**")
+        st.markdown("**Tamaño del batch:**")
         batch_size = st.radio(
             "batch", [1, 10, 30, 50, 100],
             index=[1, 10, 30, 50, 100].index(st.session_state.batch_size),
@@ -437,6 +437,51 @@ with tab_bot:
             label_visibility="collapsed"
         )
         st.session_state.batch_size = batch_size
+
+        visible_preview = all_visible[:batch_size]
+        pendientes_batch = [c for c in visible_preview if c['comment_id'] not in st.session_state.published_ids]
+        generados_batch = [c for c in pendientes_batch if c['comment_id'] in st.session_state.replies]
+        sin_generar = [c for c in pendientes_batch if c['comment_id'] not in st.session_state.replies]
+
+        ba1, ba2 = st.columns(2)
+        with ba1:
+            if sin_generar and creditos_restantes >= len(sin_generar):
+                if st.button(f"⚡ Generar {len(sin_generar)} respuestas", type="primary", use_container_width=True):
+                    prog = st.progress(0, text="Generando respuestas...")
+                    errores = 0
+                    for i, c in enumerate(sin_generar):
+                        try:
+                            st.session_state.replies[c['comment_id']] = generate_reply(c['text'])
+                            st.session_state.creditos_usados += 1
+                        except Exception:
+                            errores += 1
+                        prog.progress((i + 1) / len(sin_generar), text=f"Generando {i+1}/{len(sin_generar)}...")
+                    prog.empty()
+                    if errores:
+                        st.warning(f"⚠️ {errores} comentarios fallaron por límite de API.")
+                    st.rerun()
+            elif sin_generar and creditos_restantes < len(sin_generar):
+                st.button(f"⚡ Sin créditos suficientes ({creditos_restantes} restantes)", disabled=True, use_container_width=True)
+
+        with ba2:
+            listos = [c for c in visible_preview if c['comment_id'] in st.session_state.replies and c['comment_id'] not in st.session_state.published_ids]
+            if listos:
+                if st.button(f"✅ Publicar {len(listos)} respuestas", use_container_width=True):
+                    prog = st.progress(0, text="Publicando...")
+                    errores = 0
+                    for i, c in enumerate(listos):
+                        try:
+                            post_reply(c['comment_id'], st.session_state.replies[c['comment_id']])
+                            st.session_state.published_ids.add(c['comment_id'])
+                            st.session_state.published += 1
+                        except Exception:
+                            errores += 1
+                        prog.progress((i + 1) / len(listos), text=f"Publicando {i+1}/{len(listos)}...")
+                    prog.empty()
+                    if errores:
+                        st.warning(f"⚠️ {errores} no se pudieron publicar.")
+                    st.rerun()
+
         st.divider()
 
     visible = all_visible[:st.session_state.batch_size]
