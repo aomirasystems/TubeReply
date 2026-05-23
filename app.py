@@ -12,6 +12,7 @@ load_dotenv()
 
 SCOPES = ['https://www.googleapis.com/auth/youtube.force-ssl']
 MAX_VIDEOS = 5
+LIMITE_CREDITOS = 50
 
 BASE_PROMPT = """Eres el community manager de un canal de YouTube.
 Responde comentarios de fans siguiendo estas reglas base:
@@ -26,17 +27,155 @@ st.set_page_config(page_title="TubeReply", page_icon="▶️", layout="centered"
 
 st.markdown("""
 <style>
-.stApp { background-color: #0d0520; }
-.stTextArea textarea { background: #1a0a2e; color: #eee; border: 1px solid #7fff0055; }
-.stButton > button { border-radius: 8px; font-weight: bold; }
-div[data-testid="metric-container"] { background: #1a0a2e; border-radius: 10px; padding: 10px; }
+/* ── Base ── */
+.stApp { background-color: #08011a; }
+.block-container { padding-top: 2rem; padding-bottom: 3rem; }
+
+/* ── Header ── */
+.tubereply-header {
+    display: flex; align-items: center; gap: 12px;
+    padding: 1.2rem 1.5rem;
+    background: linear-gradient(135deg, #1a0a3e 0%, #0d0520 100%);
+    border-radius: 14px;
+    border: 1px solid #7c3aed44;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 24px #7c3aed22;
+}
+.tubereply-header h1 { margin: 0; font-size: 1.6rem; color: #e2d9f3; }
+.tubereply-header p  { margin: 0; font-size: 0.8rem; color: #9575cd; }
+
+/* ── Tabs ── */
+.stTabs [data-baseweb="tab-list"] {
+    background: #12052a;
+    border-radius: 10px;
+    padding: 4px;
+    gap: 4px;
+}
+.stTabs [data-baseweb="tab"] {
+    border-radius: 8px;
+    color: #9575cd;
+    font-weight: 600;
+    padding: 6px 20px;
+}
+.stTabs [aria-selected="true"] {
+    background: #3b0764 !important;
+    color: #e2d9f3 !important;
+}
+
+/* ── Métricas ── */
+div[data-testid="metric-container"] {
+    background: linear-gradient(135deg, #1a0a3e, #12052a);
+    border: 1px solid #4c1d9533;
+    border-radius: 12px;
+    padding: 12px 16px;
+    box-shadow: 0 2px 12px #00000033;
+}
+div[data-testid="metric-container"] label { color: #9575cd; font-size: 0.75rem; }
+div[data-testid="metric-container"] [data-testid="stMetricValue"] {
+    color: #e2d9f3; font-size: 1.6rem; font-weight: 700;
+}
+
+/* ── Cards ── */
+div[data-testid="stVerticalBlockBorderWrapper"] > div {
+    background: linear-gradient(135deg, #140630 0%, #0f0226 100%) !important;
+    border: 1px solid #4c1d9544 !important;
+    border-radius: 14px !important;
+    padding: 1rem 1.2rem !important;
+    box-shadow: 0 2px 16px #00000044;
+    transition: border-color 0.2s;
+}
+div[data-testid="stVerticalBlockBorderWrapper"]:hover > div {
+    border-color: #7c3aed88 !important;
+}
+
+/* ── Autor tag ── */
+.author-tag {
+    display: inline-block;
+    background: #3b076422;
+    border: 1px solid #7c3aed55;
+    border-radius: 20px;
+    padding: 2px 12px;
+    color: #c4b5fd;
+    font-weight: 700;
+    font-size: 0.9rem;
+}
+.author-tag.replied {
+    background: #064e3b22;
+    border-color: #10b98155;
+    color: #6ee7b7;
+}
+
+/* ── Texto comentario ── */
+.comment-text {
+    background: #0a011f;
+    border-left: 3px solid #7c3aed66;
+    border-radius: 0 8px 8px 0;
+    padding: 10px 14px;
+    color: #c4b5fd99;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    margin: 8px 0;
+}
+
+/* ── TextArea ── */
+.stTextArea textarea {
+    background: #0f0226 !important;
+    color: #e2d9f3 !important;
+    border: 1px solid #7c3aed55 !important;
+    border-radius: 10px !important;
+    font-size: 0.9rem;
+    resize: vertical;
+}
+.stTextArea textarea:focus {
+    border-color: #7c3aed !important;
+    box-shadow: 0 0 0 2px #7c3aed33 !important;
+}
+
+/* ── Botones ── */
+.stButton > button {
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+    transition: all 0.2s !important;
+}
+.stButton > button[kind="primary"] {
+    background: linear-gradient(135deg, #7c3aed, #5b21b6) !important;
+    border: none !important;
+    color: white !important;
+}
+.stButton > button[kind="primary"]:hover {
+    background: linear-gradient(135deg, #8b5cf6, #6d28d9) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px #7c3aed44 !important;
+}
+.stButton > button[kind="secondary"] {
+    background: #1a0a3e !important;
+    border: 1px solid #4c1d9555 !important;
+    color: #9575cd !important;
+}
+.stButton > button[kind="secondary"]:hover {
+    border-color: #7c3aed !important;
+    color: #e2d9f3 !important;
+}
+
+/* ── Respuesta enviada ── */
+.reply-sent {
+    background: #064e3b22;
+    border: 1px solid #10b98133;
+    border-radius: 10px;
+    padding: 10px 14px;
+    color: #6ee7b7;
+    font-size: 0.88rem;
+    line-height: 1.5;
+    margin: 6px 0;
+}
+
+/* ── Divider ── */
+hr { border-color: #4c1d9522 !important; }
+
+/* ── Warnings/errors ── */
+.stAlert { border-radius: 10px !important; }
 </style>
 """, unsafe_allow_html=True)
-
-
-# ── Detectar si estamos en la nube o local ────────────────
-def is_cloud():
-    return hasattr(st, 'secrets') and len(st.secrets) > 0
 
 
 def get_secret(key, fallback_env=None):
@@ -46,20 +185,17 @@ def get_secret(key, fallback_env=None):
         return os.getenv(fallback_env or key, '')
 
 
-# ── Estilo: local usa archivo, nube usa session_state ─────
 ESTILO_FILE = 'mi_estilo.txt'
 
 def load_estilo():
     if 'estilo' in st.session_state:
         return st.session_state['estilo']
-    # Nube: leer desde secrets
     try:
         val = st.secrets.get('CANAL_ESTILO', '')
         if val:
             return val
     except Exception:
         pass
-    # Local: leer desde archivo
     if os.path.exists(ESTILO_FILE):
         with open(ESTILO_FILE, 'r', encoding='utf-8') as f:
             return f.read().strip()
@@ -79,8 +215,11 @@ def build_prompt():
         estilo = "Sé amigable, cercano y entusiasta. Responde siempre en español."
     return BASE_PROMPT.format(contexto=estilo)
 
+def textarea_height(text):
+    lines = max(3, len(text) // 58 + text.count('\n') + 1)
+    return min(300, lines * 24 + 24)
 
-# ── Clientes ──────────────────────────────────────────────
+
 @st.cache_resource
 def get_groq_client():
     key = get_secret('GROQ_API_KEY')
@@ -92,7 +231,6 @@ def get_groq_client():
 
 @st.cache_resource
 def get_yt_service():
-    # Nube: token guardado como secret JSON
     try:
         token_data = st.secrets['YOUTUBE_TOKEN']
         if isinstance(token_data, dict):
@@ -103,7 +241,6 @@ def get_yt_service():
             f.write(token_str)
             token_path = f.name
     except Exception:
-        # Local: usa el archivo token.json
         token_path = 'token.json'
 
     creds = Credentials.from_authorized_user_file(token_path, SCOPES)
@@ -112,10 +249,8 @@ def get_yt_service():
     return build('youtube', 'v3', credentials=creds)
 
 
-# ── YouTube helpers ───────────────────────────────────────
 def get_channel_id(yt):
     return yt.channels().list(part='id', mine=True).execute()['items'][0]['id']
-
 
 def get_recent_videos(yt, channel_id):
     res = yt.search().list(
@@ -123,7 +258,6 @@ def get_recent_videos(yt, channel_id):
         type='video', order='date', maxResults=MAX_VIDEOS
     ).execute()
     return [item['id']['videoId'] for item in res.get('items', [])]
-
 
 def get_unanswered(yt, video_id, channel_id):
     result = []
@@ -151,7 +285,6 @@ def get_unanswered(yt, video_id, channel_id):
 
 MODELS = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant']
 MODEL_LIMITS = {'llama-3.3-70b-versatile': 100_000, 'llama-3.1-8b-instant': 500_000}
-AVG_TOKENS_PER_REPLY = 400
 
 def next_reset_utc():
     from datetime import datetime, timezone, timedelta
@@ -161,21 +294,13 @@ def next_reset_utc():
     minutos = int((reset - now).total_seconds() % 3600 // 60)
     return reset.strftime('%H:%M UTC'), horas, minutos
 
-def get_tokens_used():
-    return st.session_state.get('tokens_used', {m: 0 for m in MODELS})
-
-def replies_remaining():
-    used = get_tokens_used()
-    total_remaining = sum(max(0, MODEL_LIMITS[m] - used.get(m, 0)) for m in MODELS)
-    return max(0, total_remaining // AVG_TOKENS_PER_REPLY)
-
 def generate_reply(text):
     if 'model_index' not in st.session_state:
         st.session_state.model_index = 0
     if 'tokens_used' not in st.session_state:
         st.session_state.tokens_used = {m: 0 for m in MODELS}
 
-    for attempt in range(len(MODELS)):
+    for _ in range(len(MODELS)):
         idx = st.session_state.model_index
         model = MODELS[idx]
         try:
@@ -205,7 +330,6 @@ def generate_reply(text):
             else:
                 raise
 
-
 def post_reply(comment_id, text):
     get_yt_service().comments().insert(
         part='snippet',
@@ -213,19 +337,24 @@ def post_reply(comment_id, text):
     ).execute()
 
 
-# ── UI ────────────────────────────────────────────────────
-st.markdown("# ▶️ TubeReply")
-st.caption("Responde comentarios de tu canal con IA · Groq + YouTube")
+# ── UI ─────────────────────────────────────────────────────
+st.markdown("""
+<div class="tubereply-header">
+  <div>
+    <h1>▶️ TubeReply</h1>
+    <p>Responde comentarios de tu canal con IA · Groq + YouTube</p>
+  </div>
+</div>
+""", unsafe_allow_html=True)
 
 token_ok = os.path.exists('token.json') or ('YOUTUBE_TOKEN' in (st.secrets if hasattr(st, 'secrets') else {}))
 if not token_ok:
-    st.error("Canal de YouTube no conectado.")
-    st.info("Ejecuta `iniciar.bat` primero para generar el token.")
+    st.error("Canal de YouTube no conectado. Ejecuta `iniciar.bat` primero.")
     st.stop()
 
 tab_bot, tab_estilo = st.tabs(["💬 Comentarios", "✏️ Mi estilo"])
 
-# ── TAB: MI ESTILO ────────────────────────────────────────
+# ── TAB: MI ESTILO ─────────────────────────────────────────
 with tab_estilo:
     st.markdown("### Cómo quieres que responda la IA")
     st.caption("Tu tono, frases típicas, cosas a mencionar o evitar. Cuanto más detallado, mejor.")
@@ -247,15 +376,14 @@ with tab_estilo:
     if st.button("💾 Guardar estilo", type="primary", use_container_width=True):
         save_estilo(nuevo_estilo)
         st.success("✅ Guardado para esta sesión.")
-        st.info("Para que sea permanente: copia el texto de arriba y en Streamlit Cloud ve a **Settings → Secrets** y añade:\n```\nCANAL_ESTILO = '''tu texto aquí'''\n```")
+        st.info("Para que sea permanente añade en Streamlit Cloud → Settings → Secrets:\n```\nCANAL_ESTILO = '''tu texto aquí'''\n```")
 
     if load_estilo():
         with st.expander("Ver prompt completo que recibe la IA"):
             st.code(build_prompt(), language=None)
 
-# ── TAB: COMENTARIOS ──────────────────────────────────────
+# ── TAB: COMENTARIOS ───────────────────────────────────────
 with tab_bot:
-    LIMITE_CREDITOS = 50
     for key, default in [('comments', []), ('replies', {}), ('done', set()), ('published_ids', set()), ('published', 0), ('creditos_usados', 0)]:
         if key not in st.session_state:
             st.session_state[key] = default
@@ -268,10 +396,8 @@ with tab_bot:
         fetch = st.button("🔍 Buscar comentarios nuevos", type="primary", use_container_width=True)
     with col2:
         if st.button("🧹 Limpiar", use_container_width=True):
-            st.session_state.comments = []
-            st.session_state.replies = {}
-            st.session_state.done = set()
-            st.session_state.published_ids = set()
+            for k in ['comments', 'replies', 'done', 'published_ids']:
+                st.session_state[k] = [] if k == 'comments' else {} if k == 'replies' else set()
             st.session_state.published = 0
             st.rerun()
 
@@ -293,10 +419,10 @@ with tab_bot:
 
     visible = [c for c in st.session_state.comments if c['comment_id'] not in st.session_state.done]
     pending = [c for c in visible if c['comment_id'] not in st.session_state.published_ids]
+    creditos_restantes = max(0, LIMITE_CREDITOS - st.session_state.creditos_usados)
 
     if st.session_state.comments:
         m1, m2, m3, m4 = st.columns(4)
-        creditos_restantes = max(0, LIMITE_CREDITOS - st.session_state.creditos_usados)
         m1.metric("💬 Pendientes", len(pending))
         m2.metric("✅ Publicados", st.session_state.published)
         m3.metric("⏭ Saltados", len(st.session_state.done))
@@ -314,22 +440,21 @@ with tab_bot:
                 col_a, col_b = st.columns([4, 1])
                 with col_a:
                     if is_published:
-                        st.markdown(f"**👤 {c['author']}** ✅ *Respondido*")
+                        st.markdown(f'<span class="author-tag replied">✅ {c["author"]}</span>', unsafe_allow_html=True)
                     else:
-                        st.markdown(f"**👤 {c['author']}**")
+                        st.markdown(f'<span class="author-tag">👤 {c["author"]}</span>', unsafe_allow_html=True)
                 with col_b:
-                    st.markdown(f"[🎬 Ver video](https://youtu.be/{c['video_id']})")
+                    st.markdown(f'<a href="https://youtu.be/{c["video_id"]}" target="_blank" style="color:#9575cd;font-size:0.8rem;">🎬 Ver video</a>', unsafe_allow_html=True)
 
-                st.markdown(f"> {c['text'][:400]}")
-                st.divider()
+                st.markdown(f'<div class="comment-text">{c["text"][:400]}</div>', unsafe_allow_html=True)
 
                 if is_published:
-                    st.markdown(f"**Respuesta enviada:** {st.session_state.replies.get(cid, '')}")
+                    st.markdown(f'<div class="reply-sent">✅ <b>Respondido:</b> {st.session_state.replies.get(cid, "")}</div>', unsafe_allow_html=True)
                     if st.button("✖ Cerrar", key=f"close_{cid}", use_container_width=True):
                         st.session_state.done.add(cid)
                         st.rerun()
+
                 elif cid not in st.session_state.replies:
-                    creditos_restantes = max(0, LIMITE_CREDITOS - st.session_state.creditos_usados)
                     if creditos_restantes == 0:
                         st.warning("🚫 Se acabaron los créditos.")
                         if st.button("💳 Conseguir 500 créditos por $10", key=f"buy_{cid}", use_container_width=True):
@@ -351,15 +476,18 @@ with tab_bot:
                             if st.button("⏭ Saltar", key=f"skip_{cid}", use_container_width=True):
                                 st.session_state.done.add(cid)
                                 st.rerun()
+
                 else:
+                    reply_text = st.session_state.replies[cid]
                     reply = st.text_area(
-                        "🤖 Respuesta de IA — edítala si quieres:",
-                        value=st.session_state.replies[cid],
+                        "Respuesta sugerida",
+                        value=reply_text,
                         key=f"ta_{cid}",
-                        height=90
+                        height=textarea_height(reply_text),
+                        label_visibility="collapsed"
                     )
 
-                    b1, b2 = st.columns(2)
+                    b1, b2, b3 = st.columns([3, 1, 1])
                     with b1:
                         if st.button("✅ Publicar", key=f"pub_{cid}", type="primary", use_container_width=True):
                             try:
@@ -370,7 +498,22 @@ with tab_bot:
                             except Exception as e:
                                 st.error(f"No se pudo publicar: {e}")
                     with b2:
-                        if st.button("⏭ Saltar", key=f"skip_{cid}", use_container_width=True):
+                        if st.button("🔄", key=f"regen_{cid}", use_container_width=True, help="Regenerar respuesta"):
+                            if creditos_restantes > 0:
+                                with st.spinner("Regenerando..."):
+                                    try:
+                                        del st.session_state.replies[cid]
+                                        st.session_state.replies[cid] = generate_reply(c['text'])
+                                        st.session_state.creditos_usados += 1
+                                        st.rerun()
+                                    except RuntimeError as e:
+                                        st.error(str(e))
+                                    except Exception as e:
+                                        st.error(f"Error inesperado: {e}")
+                            else:
+                                st.warning("Sin créditos para regenerar.")
+                    with b3:
+                        if st.button("⏭", key=f"skip2_{cid}", use_container_width=True, help="Saltar comentario"):
                             st.session_state.done.add(cid)
                             st.rerun()
     else:
