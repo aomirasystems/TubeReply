@@ -384,7 +384,7 @@ with tab_estilo:
 
 # ── TAB: COMENTARIOS ───────────────────────────────────────
 with tab_bot:
-    for key, default in [('comments', []), ('replies', {}), ('done', set()), ('published_ids', set()), ('published', 0), ('creditos_usados', 0)]:
+    for key, default in [('comments', []), ('replies', {}), ('done', set()), ('closed', set()), ('published_ids', set()), ('published', 0), ('creditos_usados', 0)]:
         if key not in st.session_state:
             st.session_state[key] = default
 
@@ -396,7 +396,7 @@ with tab_bot:
         fetch = st.button("🔍 Buscar comentarios nuevos", type="primary", use_container_width=True)
     with col2:
         if st.button("🧹 Limpiar", use_container_width=True):
-            for k in ['comments', 'replies', 'done', 'published_ids']:
+            for k in ['comments', 'replies', 'done', 'closed', 'published_ids']:
                 st.session_state[k] = [] if k == 'comments' else {} if k == 'replies' else set()
             st.session_state.published = 0
             st.rerun()
@@ -411,13 +411,14 @@ with tab_bot:
                     all_comments.extend(get_unanswered(yt, vid, channel_id))
                 st.session_state.comments = all_comments
                 st.session_state.done = set()
+                st.session_state.closed = set()
                 st.session_state.replies = {}
                 st.session_state.published_ids = set()
                 st.session_state.published = 0
             except Exception as e:
                 st.error(f"Error al conectar con YouTube: {e}")
 
-    visible = [c for c in st.session_state.comments if c['comment_id'] not in st.session_state.done]
+    visible = [c for c in st.session_state.comments if c['comment_id'] not in st.session_state.done and c['comment_id'] not in st.session_state.closed]
     pending = [c for c in visible if c['comment_id'] not in st.session_state.published_ids]
     creditos_restantes = max(0, LIMITE_CREDITOS - st.session_state.creditos_usados)
 
@@ -451,7 +452,7 @@ with tab_bot:
                 if is_published:
                     st.markdown(f'<div class="reply-sent">✅ <b>Respondido:</b> {st.session_state.replies.get(cid, "")}</div>', unsafe_allow_html=True)
                     if st.button("✖ Cerrar", key=f"close_{cid}", use_container_width=True):
-                        st.session_state.done.add(cid)
+                        st.session_state.closed.add(cid)
                         st.rerun()
 
                 elif cid not in st.session_state.replies:
