@@ -638,11 +638,34 @@ def get_secret(key, fallback_env=None):
         return os.getenv(fallback_env or key, '')
 
 
+@st.cache_resource
+def get_supabase_client():
+    try:
+        from supabase import create_client
+        url = get_secret('SUPABASE_URL')
+        key = get_secret('SUPABASE_KEY')
+        if url and key:
+            return create_client(url, key)
+    except Exception:
+        pass
+    return None
+
+
 ESTILO_FILE = 'mi_estilo.txt'
 
 def load_estilo():
     if 'estilo' in st.session_state:
         return st.session_state['estilo']
+    try:
+        sb = get_supabase_client()
+        if sb:
+            res = sb.table('settings').select('value').eq('key', 'estilo').execute()
+            if res.data:
+                val = res.data[0]['value']
+                st.session_state['estilo'] = val
+                return val
+    except Exception:
+        pass
     try:
         val = st.secrets.get('CANAL_ESTILO', '')
         if val:
@@ -656,11 +679,20 @@ def load_estilo():
 
 def save_estilo(text):
     st.session_state['estilo'] = text
+    saved_to_db = False
+    try:
+        sb = get_supabase_client()
+        if sb:
+            sb.table('settings').upsert({'key': 'estilo', 'value': text}).execute()
+            saved_to_db = True
+    except Exception:
+        pass
     try:
         with open(ESTILO_FILE, 'w', encoding='utf-8') as f:
             f.write(text)
     except Exception:
         pass
+    return saved_to_db
 
 def build_prompt():
     estilo = load_estilo()
@@ -949,8 +981,11 @@ with tab_estilo:
     )
 
     if st.button(t('style_save'), type="primary", use_container_width=True):
-        save_estilo(nuevo_estilo)
-        st.success(t('style_saved'))
+        saved_db = save_estilo(nuevo_estilo)
+        if saved_db:
+            st.success('✅ Guardado permanentemente.' if st.session_state.lang == 'es' else '✅ Saved permanently.')
+        else:
+            st.success(t('style_saved'))
 
     if load_estilo():
         with st.expander(t('style_prompt')):
