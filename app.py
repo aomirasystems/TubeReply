@@ -338,6 +338,29 @@ def post_reply(comment_id, text):
 
 
 # ── UI ─────────────────────────────────────────────────────
+if 'iniciado' not in st.session_state:
+    st.session_state.iniciado = False
+
+if not st.session_state.iniciado:
+    st.markdown("""
+    <div style="
+        display:flex; flex-direction:column; align-items:center; justify-content:center;
+        min-height:70vh; text-align:center; gap:24px;
+    ">
+        <div style="font-size:4rem;">▶️</div>
+        <h1 style="font-size:2.8rem; color:#e2d9f3; margin:0;">TubeReply</h1>
+        <p style="font-size:1.2rem; color:#9575cd; margin:0;">
+            ¿Listo para responder comentarios y ahorrar tiempo?
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+    col_l, col_c, col_r = st.columns([1, 2, 1])
+    with col_c:
+        if st.button("🚀  INICIAR", type="primary", use_container_width=True):
+            st.session_state.iniciado = True
+            st.rerun()
+    st.stop()
+
 st.markdown("""
 <div class="tubereply-header">
   <div>
@@ -384,7 +407,7 @@ with tab_estilo:
 
 # ── TAB: COMENTARIOS ───────────────────────────────────────
 with tab_bot:
-    for key, default in [('comments', []), ('replies', {}), ('done', set()), ('closed', set()), ('published_ids', set()), ('published', 0), ('creditos_usados', 0), ('batch_size', 10)]:
+    for key, default in [('comments', []), ('replies', {}), ('done', set()), ('closed', set()), ('published_ids', set()), ('published', 0), ('creditos_usados', 0), ('batch_size', 10), ('modo', 'Asistido')]:
         if key not in st.session_state:
             st.session_state[key] = default
 
@@ -428,151 +451,198 @@ with tab_bot:
         m2.metric("✅ Publicados", st.session_state.published)
         m3.metric("⏭ Saltados", len(st.session_state.done))
         m4.metric("🎟️ Créditos", f"{creditos_restantes}/{LIMITE_CREDITOS}")
-
-        st.markdown("**Tamaño del batch:**")
-        batch_size = st.radio(
-            "batch", [1, 10, 30, 50, 100],
-            index=[1, 10, 30, 50, 100].index(st.session_state.batch_size),
-            horizontal=True,
-            label_visibility="collapsed"
-        )
-        st.session_state.batch_size = batch_size
-
-        visible_preview = all_visible[:batch_size]
-        pendientes_batch = [c for c in visible_preview if c['comment_id'] not in st.session_state.published_ids]
-        generados_batch = [c for c in pendientes_batch if c['comment_id'] in st.session_state.replies]
-        sin_generar = [c for c in pendientes_batch if c['comment_id'] not in st.session_state.replies]
-
-        ba1, ba2 = st.columns(2)
-        with ba1:
-            if sin_generar and creditos_restantes >= len(sin_generar):
-                if st.button(f"⚡ Generar {len(sin_generar)} respuestas", type="primary", use_container_width=True):
-                    prog = st.progress(0, text="Generando respuestas...")
-                    errores = 0
-                    for i, c in enumerate(sin_generar):
-                        try:
-                            st.session_state.replies[c['comment_id']] = generate_reply(c['text'])
-                            st.session_state.creditos_usados += 1
-                        except Exception:
-                            errores += 1
-                        prog.progress((i + 1) / len(sin_generar), text=f"Generando {i+1}/{len(sin_generar)}...")
-                    prog.empty()
-                    if errores:
-                        st.warning(f"⚠️ {errores} comentarios fallaron por límite de API.")
-                    st.rerun()
-            elif sin_generar and creditos_restantes < len(sin_generar):
-                st.button(f"⚡ Sin créditos suficientes ({creditos_restantes} restantes)", disabled=True, use_container_width=True)
-
-        with ba2:
-            listos = [c for c in visible_preview if c['comment_id'] in st.session_state.replies and c['comment_id'] not in st.session_state.published_ids]
-            if listos:
-                if st.button(f"✅ Publicar {len(listos)} respuestas", use_container_width=True):
-                    prog = st.progress(0, text="Publicando...")
-                    errores = 0
-                    for i, c in enumerate(listos):
-                        try:
-                            post_reply(c['comment_id'], st.session_state.replies[c['comment_id']])
-                            st.session_state.published_ids.add(c['comment_id'])
-                            st.session_state.published += 1
-                        except Exception:
-                            errores += 1
-                        prog.progress((i + 1) / len(listos), text=f"Publicando {i+1}/{len(listos)}...")
-                    prog.empty()
-                    if errores:
-                        st.warning(f"⚠️ {errores} no se pudieron publicar.")
-                    st.rerun()
-
         st.divider()
 
-    visible = all_visible[:st.session_state.batch_size]
+    # ── Modo y batch ───────────────────────────────────────
+    if st.session_state.comments:
+        st.markdown("**¿Cómo quieres responder comentarios?**")
+        modo = st.radio(
+            "modo", ["🤖 Automático", "🧑 Asistido", "⚡ Bulk"],
+            index=["🤖 Automático", "🧑 Asistido", "⚡ Bulk"].index(
+                next((m for m in ["🤖 Automático", "🧑 Asistido", "⚡ Bulk"] if st.session_state.modo in m), "🧑 Asistido")
+            ),
+            horizontal=True, label_visibility="collapsed"
+        )
+        st.session_state.modo = modo
+
+        if modo != "🤖 Automático":
+            st.markdown("**Comentarios a mostrar:**")
+            batch_size = st.radio(
+                "batch", [1, 10, 30, 50, 100],
+                index=[1, 10, 30, 50, 100].index(st.session_state.batch_size),
+                horizontal=True, label_visibility="collapsed"
+            )
+            st.session_state.batch_size = batch_size
+        st.divider()
+
+    visible = all_visible if st.session_state.modo == "🤖 Automático" else all_visible[:st.session_state.batch_size]
     pending = [c for c in visible if c['comment_id'] not in st.session_state.published_ids]
 
-    if not visible and st.session_state.comments:
-        st.success("🎉 ¡Todos los comentarios han sido revisados!")
-    elif visible:
-        for c in visible:
-            cid = c['comment_id']
-            is_published = cid in st.session_state.published_ids
+    def run_batch(comentarios, generar=True, publicar=True):
+        sin_generar = [c for c in comentarios if c['comment_id'] not in st.session_state.replies]
+        if generar and sin_generar:
+            prog = st.progress(0, text="Generando respuestas...")
+            for i, c in enumerate(sin_generar):
+                try:
+                    st.session_state.replies[c['comment_id']] = generate_reply(c['text'])
+                    st.session_state.creditos_usados += 1
+                except Exception:
+                    pass
+                prog.progress((i + 1) / len(sin_generar), text=f"Generando {i+1}/{len(sin_generar)}...")
+            prog.empty()
+        if publicar:
+            listos = [c for c in comentarios if c['comment_id'] in st.session_state.replies and c['comment_id'] not in st.session_state.published_ids]
+            prog = st.progress(0, text="Publicando...")
+            for i, c in enumerate(listos):
+                try:
+                    post_reply(c['comment_id'], st.session_state.replies[c['comment_id']])
+                    st.session_state.published_ids.add(c['comment_id'])
+                    st.session_state.published += 1
+                except Exception:
+                    pass
+                prog.progress((i + 1) / len(listos), text=f"Publicando {i+1}/{len(listos)}...")
+            prog.empty()
 
-            with st.container(border=True):
-                col_a, col_b = st.columns([4, 1])
-                with col_a:
+    # ── MODO AUTOMÁTICO ────────────────────────────────────
+    if st.session_state.modo == "🤖 Automático":
+        if not st.session_state.comments:
+            st.info("👆 Pulsa **Buscar comentarios nuevos** para empezar.")
+        elif not pending:
+            st.success("🎉 ¡Todos los comentarios han sido respondidos!")
+        else:
+            st.info(f"Se generarán y publicarán **{len(pending)} respuestas** automáticamente sin revisión.")
+            if creditos_restantes >= len(pending):
+                if st.button(f"🚀 Responder {len(pending)} comentarios automáticamente", type="primary", use_container_width=True):
+                    run_batch(pending, generar=True, publicar=True)
+                    st.rerun()
+            else:
+                st.warning(f"🚫 Créditos insuficientes. Tienes {creditos_restantes} y necesitas {len(pending)}.")
+
+    # ── MODO BULK ──────────────────────────────────────────
+    elif st.session_state.modo == "⚡ Bulk":
+        if not st.session_state.comments:
+            st.info("👆 Pulsa **Buscar comentarios nuevos** para empezar.")
+        elif not visible:
+            st.success("🎉 ¡Todos los comentarios han sido revisados!")
+        else:
+            sin_generar = [c for c in pending if c['comment_id'] not in st.session_state.replies]
+            listos = [c for c in pending if c['comment_id'] in st.session_state.replies]
+
+            ba1, ba2 = st.columns(2)
+            with ba1:
+                label = f"⚡ Generar {len(sin_generar)} respuestas" if sin_generar else "⚡ Todas generadas"
+                if st.button(label, type="primary", use_container_width=True, disabled=not sin_generar or creditos_restantes < len(sin_generar)):
+                    run_batch(sin_generar, generar=True, publicar=False)
+                    st.rerun()
+            with ba2:
+                label = f"✅ Publicar {len(listos)} respuestas" if listos else "✅ Nada que publicar"
+                if st.button(label, use_container_width=True, disabled=not listos):
+                    run_batch(listos, generar=False, publicar=True)
+                    st.rerun()
+
+            st.divider()
+            for c in visible:
+                cid = c['comment_id']
+                is_published = cid in st.session_state.published_ids
+                with st.container(border=True):
+                    col_a, col_b = st.columns([4, 1])
+                    with col_a:
+                        tag = f'<span class="author-tag replied">✅ {c["author"]}</span>' if is_published else f'<span class="author-tag">👤 {c["author"]}</span>'
+                        st.markdown(tag, unsafe_allow_html=True)
+                    with col_b:
+                        st.markdown(f'<a href="https://youtu.be/{c["video_id"]}" target="_blank" style="color:#9575cd;font-size:0.8rem;">🎬 Ver video</a>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="comment-text">{c["text"][:400]}</div>', unsafe_allow_html=True)
                     if is_published:
-                        st.markdown(f'<span class="author-tag replied">✅ {c["author"]}</span>', unsafe_allow_html=True)
+                        st.markdown(f'<div class="reply-sent">✅ <b>Respondido:</b> {st.session_state.replies.get(cid, "")}</div>', unsafe_allow_html=True)
+                        if st.button("✖ Cerrar", key=f"close_{cid}", use_container_width=True):
+                            st.session_state.closed.add(cid)
+                            st.rerun()
+                    elif cid in st.session_state.replies:
+                        st.markdown(f'<div class="reply-sent" style="border-color:#7c3aed55;color:#c4b5fd;">🤖 {st.session_state.replies[cid]}</div>', unsafe_allow_html=True)
                     else:
-                        st.markdown(f'<span class="author-tag">👤 {c["author"]}</span>', unsafe_allow_html=True)
-                with col_b:
-                    st.markdown(f'<a href="https://youtu.be/{c["video_id"]}" target="_blank" style="color:#9575cd;font-size:0.8rem;">🎬 Ver video</a>', unsafe_allow_html=True)
+                        st.caption("Pendiente de generar")
 
-                st.markdown(f'<div class="comment-text">{c["text"][:400]}</div>', unsafe_allow_html=True)
+    # ── MODO ASISTIDO ──────────────────────────────────────
+    elif st.session_state.modo == "🧑 Asistido":
+        if not st.session_state.comments:
+            st.info("👆 Pulsa **Buscar comentarios nuevos** para empezar.")
+        elif not visible:
+            st.success("🎉 ¡Todos los comentarios han sido revisados!")
+        else:
+            for c in visible:
+                cid = c['comment_id']
+                is_published = cid in st.session_state.published_ids
+                with st.container(border=True):
+                    col_a, col_b = st.columns([4, 1])
+                    with col_a:
+                        tag = f'<span class="author-tag replied">✅ {c["author"]}</span>' if is_published else f'<span class="author-tag">👤 {c["author"]}</span>'
+                        st.markdown(tag, unsafe_allow_html=True)
+                    with col_b:
+                        st.markdown(f'<a href="https://youtu.be/{c["video_id"]}" target="_blank" style="color:#9575cd;font-size:0.8rem;">🎬 Ver video</a>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="comment-text">{c["text"][:400]}</div>', unsafe_allow_html=True)
 
-                if is_published:
-                    st.markdown(f'<div class="reply-sent">✅ <b>Respondido:</b> {st.session_state.replies.get(cid, "")}</div>', unsafe_allow_html=True)
-                    if st.button("✖ Cerrar", key=f"close_{cid}", use_container_width=True):
-                        st.session_state.closed.add(cid)
-                        st.rerun()
-
-                elif cid not in st.session_state.replies:
-                    if creditos_restantes == 0:
-                        st.warning("🚫 Se acabaron los créditos.")
-                        if st.button("💳 Conseguir 500 créditos por $10", key=f"buy_{cid}", use_container_width=True):
-                            st.info("Sistema de pago próximamente disponible.")
+                    if is_published:
+                        st.markdown(f'<div class="reply-sent">✅ <b>Respondido:</b> {st.session_state.replies.get(cid, "")}</div>', unsafe_allow_html=True)
+                        if st.button("✖ Cerrar", key=f"close_{cid}", use_container_width=True):
+                            st.session_state.closed.add(cid)
+                            st.rerun()
+                    elif cid not in st.session_state.replies:
+                        if creditos_restantes == 0:
+                            st.warning("🚫 Se acabaron los créditos.")
+                            if st.button("💳 Conseguir 500 créditos por $10", key=f"buy_{cid}", use_container_width=True):
+                                st.info("Sistema de pago próximamente disponible.")
+                        else:
+                            b_gen, b_skip = st.columns([3, 1])
+                            with b_gen:
+                                if st.button("🤖 Generar respuesta", key=f"gen_{cid}", type="primary", use_container_width=True):
+                                    with st.spinner("Generando..."):
+                                        try:
+                                            st.session_state.replies[cid] = generate_reply(c['text'])
+                                            st.session_state.creditos_usados += 1
+                                            st.rerun()
+                                        except RuntimeError as e:
+                                            st.error(str(e))
+                                        except Exception as e:
+                                            st.error(f"Error inesperado: {e}")
+                            with b_skip:
+                                if st.button("⏭ Saltar", key=f"skip_{cid}", use_container_width=True):
+                                    st.session_state.done.add(cid)
+                                    st.rerun()
                     else:
-                        b_gen, b_skip = st.columns([3, 1])
-                        with b_gen:
-                            if st.button("🤖 Generar respuesta", key=f"gen_{cid}", type="primary", use_container_width=True):
-                                with st.spinner("Generando..."):
-                                    try:
-                                        st.session_state.replies[cid] = generate_reply(c['text'])
-                                        st.session_state.creditos_usados += 1
-                                        st.rerun()
-                                    except RuntimeError as e:
-                                        st.error(str(e))
-                                    except Exception as e:
-                                        st.error(f"Error inesperado: {e}")
-                        with b_skip:
-                            if st.button("⏭ Saltar", key=f"skip_{cid}", use_container_width=True):
+                        reply_text = st.session_state.replies[cid]
+                        reply = st.text_area(
+                            "Respuesta sugerida",
+                            value=reply_text,
+                            key=f"ta_{cid}",
+                            height=textarea_height(reply_text),
+                            label_visibility="collapsed"
+                        )
+                        b1, b2, b3 = st.columns([3, 1, 1])
+                        with b1:
+                            if st.button("✅ Publicar", key=f"pub_{cid}", type="primary", use_container_width=True):
+                                try:
+                                    post_reply(cid, reply)
+                                    st.session_state.published_ids.add(cid)
+                                    st.session_state.published += 1
+                                    st.rerun()
+                                except Exception as e:
+                                    st.error(f"No se pudo publicar: {e}")
+                        with b2:
+                            if st.button("🔄", key=f"regen_{cid}", use_container_width=True, help="Regenerar respuesta"):
+                                if creditos_restantes > 0:
+                                    with st.spinner("Regenerando..."):
+                                        try:
+                                            del st.session_state.replies[cid]
+                                            st.session_state.replies[cid] = generate_reply(c['text'])
+                                            st.session_state.creditos_usados += 1
+                                            st.rerun()
+                                        except RuntimeError as e:
+                                            st.error(str(e))
+                                        except Exception as e:
+                                            st.error(f"Error inesperado: {e}")
+                                else:
+                                    st.warning("Sin créditos para regenerar.")
+                        with b3:
+                            if st.button("⏭", key=f"skip2_{cid}", use_container_width=True, help="Saltar comentario"):
                                 st.session_state.done.add(cid)
                                 st.rerun()
-
-                else:
-                    reply_text = st.session_state.replies[cid]
-                    reply = st.text_area(
-                        "Respuesta sugerida",
-                        value=reply_text,
-                        key=f"ta_{cid}",
-                        height=textarea_height(reply_text),
-                        label_visibility="collapsed"
-                    )
-
-                    b1, b2, b3 = st.columns([3, 1, 1])
-                    with b1:
-                        if st.button("✅ Publicar", key=f"pub_{cid}", type="primary", use_container_width=True):
-                            try:
-                                post_reply(cid, reply)
-                                st.session_state.published_ids.add(cid)
-                                st.session_state.published += 1
-                                st.rerun()
-                            except Exception as e:
-                                st.error(f"No se pudo publicar: {e}")
-                    with b2:
-                        if st.button("🔄", key=f"regen_{cid}", use_container_width=True, help="Regenerar respuesta"):
-                            if creditos_restantes > 0:
-                                with st.spinner("Regenerando..."):
-                                    try:
-                                        del st.session_state.replies[cid]
-                                        st.session_state.replies[cid] = generate_reply(c['text'])
-                                        st.session_state.creditos_usados += 1
-                                        st.rerun()
-                                    except RuntimeError as e:
-                                        st.error(str(e))
-                                    except Exception as e:
-                                        st.error(f"Error inesperado: {e}")
-                            else:
-                                st.warning("Sin créditos para regenerar.")
-                    with b3:
-                        if st.button("⏭", key=f"skip2_{cid}", use_container_width=True, help="Saltar comentario"):
-                            st.session_state.done.add(cid)
-                            st.rerun()
-    else:
-        st.info("👆 Pulsa **Buscar comentarios nuevos** para empezar.")
