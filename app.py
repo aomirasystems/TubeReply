@@ -384,7 +384,7 @@ with tab_estilo:
 
 # ── TAB: COMENTARIOS ───────────────────────────────────────
 with tab_bot:
-    for key, default in [('comments', []), ('replies', {}), ('done', set()), ('closed', set()), ('published_ids', set()), ('published', 0), ('creditos_usados', 0)]:
+    for key, default in [('comments', []), ('replies', {}), ('done', set()), ('closed', set()), ('published_ids', set()), ('published', 0), ('creditos_usados', 0), ('batch_size', 10)]:
         if key not in st.session_state:
             st.session_state[key] = default
 
@@ -418,17 +418,29 @@ with tab_bot:
             except Exception as e:
                 st.error(f"Error al conectar con YouTube: {e}")
 
-    visible = [c for c in st.session_state.comments if c['comment_id'] not in st.session_state.done and c['comment_id'] not in st.session_state.closed]
-    pending = [c for c in visible if c['comment_id'] not in st.session_state.published_ids]
+    all_visible = [c for c in st.session_state.comments if c['comment_id'] not in st.session_state.done and c['comment_id'] not in st.session_state.closed]
+    all_pending = [c for c in all_visible if c['comment_id'] not in st.session_state.published_ids]
     creditos_restantes = max(0, LIMITE_CREDITOS - st.session_state.creditos_usados)
 
     if st.session_state.comments:
         m1, m2, m3, m4 = st.columns(4)
-        m1.metric("💬 Pendientes", len(pending))
+        m1.metric("💬 Pendientes", len(all_pending))
         m2.metric("✅ Publicados", st.session_state.published)
         m3.metric("⏭ Saltados", len(st.session_state.done))
         m4.metric("🎟️ Créditos", f"{creditos_restantes}/{LIMITE_CREDITOS}")
+
+        st.markdown("**Comentarios por batch:**")
+        batch_size = st.radio(
+            "batch", [1, 10, 30, 50, 100],
+            index=[1, 10, 30, 50, 100].index(st.session_state.batch_size),
+            horizontal=True,
+            label_visibility="collapsed"
+        )
+        st.session_state.batch_size = batch_size
         st.divider()
+
+    visible = all_visible[:st.session_state.batch_size]
+    pending = [c for c in visible if c['comment_id'] not in st.session_state.published_ids]
 
     if not visible and st.session_state.comments:
         st.success("🎉 ¡Todos los comentarios han sido revisados!")
