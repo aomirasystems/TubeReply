@@ -736,6 +736,44 @@ def get_unanswered(yt, video_id, channel_id):
     return result
 
 
+DEMO_COMMENTS = [
+    {'comment_id': 'demo_001', 'author': 'DinoFan2024',
+     'text': '¿Crees que el T-Rex realmente no podía verte si no te movías, como en Jurassic Park? 🦖',
+     'video_id': 'dQw4w9WgXcQ'},
+    {'comment_id': 'demo_002', 'author': 'PaleontologíaLover',
+     'text': 'Acabo de ver el video sobre el Spinosaurus, ¡increíble que fuera más grande que el T-Rex! ¿Cuál crees que ganaría en una pelea real?',
+     'video_id': 'dQw4w9WgXcQ'},
+    {'comment_id': 'demo_003', 'author': 'MartinaGarcia',
+     'text': '¿Es verdad que los pájaros son básicamente dinosaurios? Mi profe lo dijo y no me lo creo jaja',
+     'video_id': 'dQw4w9WgXcQ'},
+    {'comment_id': 'demo_004', 'author': 'CarlosRuiz_Dinos',
+     'text': 'Oye, ¿por qué los dinosaurios eran tan enormes comparados con los animales de hoy? ¿Tiene que ver con el oxígeno?',
+     'video_id': 'dQw4w9WgXcQ'},
+    {'comment_id': 'demo_005', 'author': 'JuanDelMonte',
+     'text': 'Me encanta tu canal, siempre aprendo algo nuevo 🦕 ¿Vas a hacer un video sobre el Brachiosaurus?',
+     'video_id': 'dQw4w9WgXcQ'},
+    {'comment_id': 'demo_006', 'author': 'SofiaP_Ciencia',
+     'text': '¿Cuál es el dinosaurio más grande que se ha descubierto hasta ahora? ¿El Argentinosaurus sigue siendo el campeón?',
+     'video_id': 'dQw4w9WgXcQ'},
+    {'comment_id': 'demo_007', 'author': 'RobertoAlva',
+     'text': 'Los velociraptors del cine son muy diferentes a los reales ¿verdad? Cuéntanos más sobre cómo eran de verdad',
+     'video_id': 'dQw4w9WgXcQ'},
+    {'comment_id': 'demo_008', 'author': 'IsabelCano',
+     'text': '¿Cómo saben los paleontólogos de qué color eran los dinosaurios si solo quedan huesos?',
+     'video_id': 'dQw4w9WgXcQ'},
+]
+
+DEMO_REPLIES = {
+    'demo_001': '¡Ese mito viene directo de Crichton, pero la biología no acompaña! El T-Rex tenía visión binocular bastante desarrollada, similar a la de las águilas. Lo que sí es cierto es que detectaba mejor el movimiento. ¿Sabías que su ojo era del tamaño de una pelota de béisbol?',
+    'demo_002': 'El Spinosaurus medía hasta 15m y probablemente pesaba más, pero vivían en épocas y hábitats distintos. En el agua el Spino ganaba sin duda, en tierra firme era otro cuento. ¿Tú con cuál te quedas?',
+    'demo_003': '¡100% cierto y es de mis cosas favoritas! Las aves son dinosaurios terópodos que sobrevivieron a la extinción del Cretácico. Cuando ves un gorrión estás viendo un dino de verdad. ¿No te parece alucinante que el linaje siga vivo?',
+    'demo_004': 'El oxígeno influía, pero también los sacos aéreos en los huesos (como en las aves actuales) y la abundante vegetación de la época. Eran eficientes de una forma que ya no existe. ¿Qué es lo que más te fascina de ese gigantismo?',
+    'demo_005': '¡Gracias! El Brachiosaurus está en la lista, hay cosas nuevas sobre su locomoción que molan mucho. ¿Prefieres que enfoque más la anatomía o el ecosistema en el que vivía?',
+    'demo_006': 'El Patagotitan mayorum le está quitando el trono según los estudios más recientes, aunque medir un animal por fragmentos siempre tiene margen de error. ¡La carrera al más grande nunca termina! ¿Prefieres los gigantes herbívoros o los carnívoros?',
+    'demo_007': 'Exacto, los raptors reales eran del tamaño de un pavo y tenían plumas. Lo del cine fue basado en el Deinonychus con mucha licencia artística. Aunque con inteligencia similar a un cuervo moderno, seguían siendo peligrosos. ¿Te hago un video comparando cine vs realidad?',
+    'demo_008': 'Con melanosomas fosilizados en plumas excepcionalmente bien preservadas, son microestructuras celulares que aún conservan información química. Solo funciona en fósiles en condiciones muy especiales, por eso solo conocemos el color de muy pocos. ¿No es una historia de detective increíble?',
+}
+
 MODELS = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant']
 MODEL_LIMITS = {'llama-3.3-70b-versatile': 100_000, 'llama-3.1-8b-instant': 500_000}
 
@@ -789,11 +827,22 @@ def post_reply(comment_id, text):
         body={'snippet': {'parentId': comment_id, 'textOriginal': text}}
     ).execute()
 
+def get_reply(c):
+    if st.session_state.get('demo_mode'):
+        import time; time.sleep(0.35)
+        return DEMO_REPLIES.get(c['comment_id'],
+            "¡Gracias por el comentario! ¿Qué tema de paleontología te gustaría que cubriera próximamente?")
+    return generate_reply(c['text'])
+
+def publish_reply(comment_id, text):
+    if not st.session_state.get('demo_mode'):
+        post_reply(comment_id, text)
+
 
 # ══════════════════════════════════════════════════════════════
 # UI
 # ══════════════════════════════════════════════════════════════
-for key, default in [('iniciado', False), ('lang', 'es')]:
+for key, default in [('iniciado', False), ('lang', 'es'), ('demo_mode', False)]:
     if key not in st.session_state:
         st.session_state[key] = default
 
@@ -833,16 +882,38 @@ if not st.session_state.iniciado:
         if st.button(t('start'), type="primary", use_container_width=True):
             st.session_state.iniciado = True
             st.rerun()
+        st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
+        demo_label = "👀 Ver demo" if st.session_state.lang == 'es' else "👀 View demo"
+        if st.button(demo_label, use_container_width=True):
+            st.session_state.demo_mode = True
+            st.session_state.iniciado = True
+            st.rerun()
+        st.markdown(
+            '<p style="text-align:center;color:rgba(107,91,149,0.5);font-size:0.72rem;margin-top:6px;">'
+            + ("Sin cuenta · Sin API · Solo para ver" if st.session_state.lang == 'es' else "No account · No API · Just to explore")
+            + '</p>',
+            unsafe_allow_html=True
+        )
     st.stop()
 
 # ── HEADER ────────────────────────────────────────────────────
 h1, h2 = st.columns([5, 1])
 with h1:
-    st.markdown("""
+    demo_badge = (
+        '<span style="display:inline-flex;align-items:center;gap:6px;'
+        'background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.35);'
+        'border-radius:999px;padding:3px 12px;color:#fbbf24;font-size:0.68rem;'
+        'font-weight:700;letter-spacing:0.15em;text-transform:uppercase;margin-left:12px;">'
+        '👁 DEMO</span>'
+        if st.session_state.get('demo_mode') else ''
+    )
+    st.markdown(f"""
     <div class="tr-header">
-      <div>
-        <div class="tr-logo">▶️&nbsp;Tube<span class="tr-logo-accent">Reply</span></div>
-        <div class="tr-sub">AI · YouTube · Groq</div>
+      <div style="display:flex;align-items:center;">
+        <div>
+          <div class="tr-logo">▶️&nbsp;Tube<span class="tr-logo-accent">Reply</span>{demo_badge}</div>
+          <div class="tr-sub">AI · YouTube · Groq</div>
+        </div>
       </div>
     </div>
     """, unsafe_allow_html=True)
@@ -853,10 +924,11 @@ with h2:
                            horizontal=True, label_visibility="collapsed")
     st.session_state.lang = 'es' if lang_toggle == "🇪🇸" else 'en'
 
-token_ok = os.path.exists('token.json') or ('YOUTUBE_TOKEN' in (st.secrets if hasattr(st, 'secrets') else {}))
-if not token_ok:
-    st.error(t('no_connected'))
-    st.stop()
+if not st.session_state.get('demo_mode'):
+    token_ok = os.path.exists('token.json') or ('YOUTUBE_TOKEN' in (st.secrets if hasattr(st, 'secrets') else {}))
+    if not token_ok:
+        st.error(t('no_connected'))
+        st.stop()
 
 tab_bot, tab_estilo = st.tabs([t('tab_comments'), t('tab_style')])
 
@@ -908,21 +980,30 @@ with tab_bot:
             st.rerun()
 
     if fetch:
-        with st.spinner(t('connecting')):
-            try:
-                yt = get_yt_service()
-                channel_id = get_channel_id(yt)
-                all_comments = []
-                for vid in get_recent_videos(yt, channel_id):
-                    all_comments.extend(get_unanswered(yt, vid, channel_id))
-                st.session_state.comments = all_comments
-                st.session_state.done = set()
-                st.session_state.closed = set()
-                st.session_state.replies = {}
-                st.session_state.published_ids = set()
-                st.session_state.published = 0
-            except Exception as e:
-                st.error(t('yt_error', e=e))
+        if st.session_state.get('demo_mode'):
+            import time; time.sleep(0.6)
+            st.session_state.comments = DEMO_COMMENTS.copy()
+            st.session_state.done = set()
+            st.session_state.closed = set()
+            st.session_state.replies = {}
+            st.session_state.published_ids = set()
+            st.session_state.published = 0
+        else:
+            with st.spinner(t('connecting')):
+                try:
+                    yt = get_yt_service()
+                    channel_id = get_channel_id(yt)
+                    all_comments = []
+                    for vid in get_recent_videos(yt, channel_id):
+                        all_comments.extend(get_unanswered(yt, vid, channel_id))
+                    st.session_state.comments = all_comments
+                    st.session_state.done = set()
+                    st.session_state.closed = set()
+                    st.session_state.replies = {}
+                    st.session_state.published_ids = set()
+                    st.session_state.published = 0
+                except Exception as e:
+                    st.error(t('yt_error', e=e))
 
     all_visible = [c for c in st.session_state.comments
                    if c['comment_id'] not in st.session_state.done
@@ -972,7 +1053,7 @@ with tab_bot:
             prog = st.progress(0, text=t('generating'))
             for i, c in enumerate(sin_generar):
                 try:
-                    st.session_state.replies[c['comment_id']] = generate_reply(c['text'])
+                    st.session_state.replies[c['comment_id']] = get_reply(c)
                     st.session_state.creditos_usados += 1
                 except Exception:
                     pass
@@ -985,7 +1066,7 @@ with tab_bot:
             prog = st.progress(0, text=t('publishing'))
             for i, c in enumerate(listos):
                 try:
-                    post_reply(c['comment_id'], st.session_state.replies[c['comment_id']])
+                    publish_reply(c['comment_id'], st.session_state.replies[c['comment_id']])
                     st.session_state.published_ids.add(c['comment_id'])
                     st.session_state.published += 1
                 except Exception:
@@ -1118,7 +1199,7 @@ with tab_bot:
                                 if st.button(t('generate'), key=f"gen_{cid}", type="primary", use_container_width=True):
                                     with st.spinner(t('generating')):
                                         try:
-                                            st.session_state.replies[cid] = generate_reply(c['text'])
+                                            st.session_state.replies[cid] = get_reply(c)
                                             st.session_state.creditos_usados += 1
                                             st.rerun()
                                         except RuntimeError as e:
@@ -1138,7 +1219,7 @@ with tab_bot:
                         with b1:
                             if st.button(t('publish'), key=f"pub_{cid}", type="primary", use_container_width=True):
                                 try:
-                                    post_reply(cid, reply)
+                                    publish_reply(cid, reply)
                                     st.session_state.published_ids.add(cid)
                                     st.session_state.published += 1
                                     st.rerun()
@@ -1150,7 +1231,7 @@ with tab_bot:
                                     with st.spinner(t('generating')):
                                         try:
                                             del st.session_state.replies[cid]
-                                            st.session_state.replies[cid] = generate_reply(c['text'])
+                                            st.session_state.replies[cid] = get_reply(c)
                                             st.session_state.creditos_usados += 1
                                             st.rerun()
                                         except RuntimeError as e:
