@@ -343,18 +343,27 @@ if 'iniciado' not in st.session_state:
 
 if not st.session_state.iniciado:
     st.markdown("""
-    <div style="
-        display:flex; flex-direction:column; align-items:center; justify-content:center;
-        min-height:70vh; text-align:center; gap:24px;
-    ">
-        <div style="font-size:4rem;">▶️</div>
-        <h1 style="font-size:2.8rem; color:#e2d9f3; margin:0;">TubeReply</h1>
-        <p style="font-size:1.2rem; color:#9575cd; margin:0;">
+    <style>
+    div[data-testid="stMainBlockContainer"] { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:90vh; }
+    .welcome-wrap { display:flex; flex-direction:column; align-items:center; text-align:center; gap:20px; padding:2rem; }
+    div[data-testid="stButton"] button[kind="primary"] {
+        font-size:1.6rem !important;
+        padding:1.1rem 3.5rem !important;
+        border-radius:16px !important;
+        letter-spacing:0.12em !important;
+        box-shadow: 0 6px 32px #7c3aed55 !important;
+        min-width:260px;
+    }
+    </style>
+    <div class="welcome-wrap">
+        <div style="font-size:5rem;">▶️</div>
+        <h1 style="font-size:3rem; color:#e2d9f3; margin:0; font-weight:800;">TubeReply</h1>
+        <p style="font-size:1.25rem; color:#9575cd; margin:0;">
             ¿Listo para responder comentarios y ahorrar tiempo?
         </p>
     </div>
     """, unsafe_allow_html=True)
-    col_l, col_c, col_r = st.columns([1, 2, 1])
+    col_l, col_c, col_r = st.columns([1, 1.2, 1])
     with col_c:
         if st.button("🚀  INICIAR", type="primary", use_container_width=True):
             st.session_state.iniciado = True
