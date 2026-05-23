@@ -662,21 +662,6 @@ with tab_bot:
                 prog.progress((i + 1) / len(listos), text=t('pub_progress', i=i+1, n=len(listos)))
             prog.empty()
 
-    # ── MODO AUTOMÁTICO ────────────────────────────────────
-    if st.session_state.modo == t('mode_auto'):
-        if not st.session_state.comments:
-            st.info(t('start_hint'))
-        elif not pending:
-            st.success(t('all_replied'))
-        else:
-            st.info(t('auto_info', n=len(pending)))
-            if creditos_restantes >= len(pending):
-                if st.button(t('auto_btn', n=len(pending)), type="primary", use_container_width=True):
-                    run_batch(pending, generar=True, publicar=True)
-                    st.rerun()
-            else:
-                st.warning(t('auto_no_credits', r=creditos_restantes, n=len(pending)))
-
     def render_card(c, cid, is_published, mode_key):
         with st.container(border=True):
             col_a, col_b = st.columns([4, 1])
@@ -695,6 +680,21 @@ with tab_bot:
                 st.markdown(f'<div class="reply-sent" style="border-color:#7c3aed55;color:#c4b5fd;">🤖 {st.session_state.replies[cid]}</div>', unsafe_allow_html=True)
             else:
                 st.caption(t('pending_gen'))
+
+    # ── MODO AUTOMÁTICO ────────────────────────────────────
+    if st.session_state.modo == t('mode_auto'):
+        if not st.session_state.comments:
+            st.info(t('start_hint'))
+        elif not pending:
+            st.success(t('all_replied'))
+        else:
+            st.info(t('auto_info', n=len(pending)))
+            if creditos_restantes >= len(pending):
+                if st.button(t('auto_btn', n=len(pending)), type="primary", use_container_width=True):
+                    run_batch(pending, generar=True, publicar=True)
+                    st.rerun()
+            else:
+                st.warning(t('auto_no_credits', r=creditos_restantes, n=len(pending)))
 
     # ── MODO BULK ──────────────────────────────────────────
     elif st.session_state.modo == t('mode_bulk'):
