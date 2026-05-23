@@ -255,7 +255,8 @@ with tab_estilo:
 
 # ── TAB: COMENTARIOS ──────────────────────────────────────
 with tab_bot:
-    for key, default in [('comments', []), ('replies', {}), ('done', set()), ('published_ids', set()), ('published', 0)]:
+    LIMITE_CREDITOS = 50
+    for key, default in [('comments', []), ('replies', {}), ('done', set()), ('published_ids', set()), ('published', 0), ('creditos_usados', 0)]:
         if key not in st.session_state:
             st.session_state[key] = default
 
@@ -295,12 +296,11 @@ with tab_bot:
 
     if st.session_state.comments:
         m1, m2, m3, m4 = st.columns(4)
+        creditos_restantes = max(0, LIMITE_CREDITOS - st.session_state.creditos_usados)
         m1.metric("💬 Pendientes", len(pending))
         m2.metric("✅ Publicados", st.session_state.published)
-        m3.metric("⏭ Saltados", len(st.session_state.done) - st.session_state.published)
-        restantes = replies_remaining()
-        modelo_actual = MODELS[st.session_state.get('model_index', 0)].split('-')[1]
-        m4.metric("🤖 Respuestas restantes", f"~{restantes}", help=f"Modelo activo: {modelo_actual} · Estimado según tokens usados esta sesión")
+        m3.metric("⏭ Saltados", len(st.session_state.done))
+        m4.metric("🎟️ Créditos", f"{creditos_restantes}/{LIMITE_CREDITOS}")
         st.divider()
 
     if not visible and st.session_state.comments:
@@ -329,21 +329,28 @@ with tab_bot:
                         st.session_state.done.add(cid)
                         st.rerun()
                 elif cid not in st.session_state.replies:
-                    b_gen, b_skip = st.columns([3, 1])
-                    with b_gen:
-                        if st.button("🤖 Generar respuesta", key=f"gen_{cid}", type="primary", use_container_width=True):
-                            with st.spinner("Generando..."):
-                                try:
-                                    st.session_state.replies[cid] = generate_reply(c['text'])
-                                    st.rerun()
-                                except RuntimeError as e:
-                                    st.error(str(e))
-                                except Exception as e:
-                                    st.error(f"Error inesperado: {e}")
-                    with b_skip:
-                        if st.button("⏭ Saltar", key=f"skip_{cid}", use_container_width=True):
-                            st.session_state.done.add(cid)
-                            st.rerun()
+                    creditos_restantes = max(0, LIMITE_CREDITOS - st.session_state.creditos_usados)
+                    if creditos_restantes == 0:
+                        st.warning("🚫 Se acabaron los créditos.")
+                        if st.button("💳 Conseguir 500 créditos por $10", key=f"buy_{cid}", use_container_width=True):
+                            st.info("Sistema de pago próximamente disponible.")
+                    else:
+                        b_gen, b_skip = st.columns([3, 1])
+                        with b_gen:
+                            if st.button("🤖 Generar respuesta", key=f"gen_{cid}", type="primary", use_container_width=True):
+                                with st.spinner("Generando..."):
+                                    try:
+                                        st.session_state.replies[cid] = generate_reply(c['text'])
+                                        st.session_state.creditos_usados += 1
+                                        st.rerun()
+                                    except RuntimeError as e:
+                                        st.error(str(e))
+                                    except Exception as e:
+                                        st.error(f"Error inesperado: {e}")
+                        with b_skip:
+                            if st.button("⏭ Saltar", key=f"skip_{cid}", use_container_width=True):
+                                st.session_state.done.add(cid)
+                                st.rerun()
                 else:
                     reply = st.text_area(
                         "🤖 Respuesta de IA — edítala si quieres:",
