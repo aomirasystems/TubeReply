@@ -17,12 +17,12 @@ LIMITE_CREDITOS = 50
 T = {
     'es': {
         'welcome_sub':    '¿Listo para responder comentarios y ahorrar tiempo?',
-        'start':          '🚀  INICIAR',
+        'start':          'INICIAR',
         'tab_comments':   '💬 Comentarios',
         'tab_style':      '✏️ Mi estilo',
         'search':         '🔍 Buscar comentarios nuevos',
         'clear':          '🧹 Limpiar',
-        'mode_question':  '¿Cómo quieres responder comentarios?',
+        'mode_question':  '¿Cómo quieres responder?',
         'mode_auto':      '🤖 Automático',
         'mode_assisted':  '🧑 Asistido',
         'mode_bulk':      '⚡ Bulk',
@@ -74,12 +74,12 @@ T = {
     },
     'en': {
         'welcome_sub':    'Ready to reply to comments and save time?',
-        'start':          '🚀  START',
+        'start':          'START',
         'tab_comments':   '💬 Comments',
         'tab_style':      '✏️ My style',
         'search':         '🔍 Find new comments',
         'clear':          '🧹 Clear',
-        'mode_question':  'How do you want to reply to comments?',
+        'mode_question':  'How do you want to reply?',
         'mode_auto':      '🤖 Automatic',
         'mode_assisted':  '🧑 Assisted',
         'mode_bulk':      '⚡ Bulk',
@@ -145,181 +145,487 @@ Responde comentarios de fans siguiendo estas reglas base:
 El creador del canal ha dado estas instrucciones sobre su estilo:
 {contexto}"""
 
-st.set_page_config(page_title="TubeReply", page_icon="▶️", layout="centered")
+st.set_page_config(page_title="TubeReply", page_icon="▶️", layout="wide")
 
 st.markdown("""
 <style>
-/* ── Base ── */
-.stApp { background-color: #08011a; }
-.block-container { padding-top: 2rem; padding-bottom: 3rem; }
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;600;700;800&display=swap');
 
-/* ── Header ── */
-.tubereply-header {
-    display: flex; align-items: center; gap: 12px;
-    padding: 1.2rem 1.5rem;
-    background: linear-gradient(135deg, #1a0a3e 0%, #0d0520 100%);
-    border-radius: 14px;
-    border: 1px solid #7c3aed44;
-    margin-bottom: 1.5rem;
-    box-shadow: 0 4px 24px #7c3aed22;
+/* ═══════════════════════════════════════
+   HIDE STREAMLIT CHROME
+═══════════════════════════════════════ */
+#MainMenu,
+header[data-testid="stHeader"],
+[data-testid="stToolbar"],
+[data-testid="stDecoration"],
+.stDeployButton,
+footer { display: none !important; }
+
+/* ═══════════════════════════════════════
+   BASE
+═══════════════════════════════════════ */
+*, *::before, *::after {
+  box-sizing: border-box;
+  font-family: 'Inter', -apple-system, sans-serif !important;
 }
-.tubereply-header h1 { margin: 0; font-size: 1.6rem; color: #e2d9f3; }
-.tubereply-header p  { margin: 0; font-size: 0.8rem; color: #9575cd; }
 
-/* ── Tabs ── */
+.stApp {
+  background: #07010f !important;
+  color: #e2d9f3 !important;
+}
+
+.block-container {
+  max-width: 860px !important;
+  padding: 0 1.8rem 5rem !important;
+  margin: 0 auto !important;
+}
+
+/* ── Background glow ── */
+.stApp::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 70% 55% at 8% 0%,  rgba(124,58,237,0.18) 0%, transparent 55%),
+    radial-gradient(ellipse 55% 45% at 92% 98%, rgba(79,70,229,0.12)  0%, transparent 50%),
+    radial-gradient(ellipse 40% 35% at 50% 50%, rgba(124,58,237,0.04) 0%, transparent 65%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Noise texture ── */
+.stApp::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.45;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 5px; background: #07010f; }
+::-webkit-scrollbar-thumb { background: #3b0764; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #7c3aed; }
+
+/* ═══════════════════════════════════════
+   WELCOME SCREEN
+═══════════════════════════════════════ */
+.welcome-screen {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2rem;
+}
+
+.welcome-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(124,58,237,0.1);
+  border: 1px solid rgba(124,58,237,0.3);
+  border-radius: 999px;
+  padding: 6px 16px;
+  color: #a78bfa;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  margin-bottom: 2rem;
+}
+
+.welcome-badge-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: #7c3aed;
+  animation: pulse-dot 2s infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.3; transform: scale(0.8); }
+}
+
+.welcome-logo {
+  font-family: 'Space Grotesk', sans-serif !important;
+  font-size: clamp(3rem, 10vw, 5.5rem);
+  font-weight: 800;
+  color: #e2d9f3;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  margin-bottom: 1.2rem;
+}
+
+.welcome-logo-accent { color: #7c3aed; }
+
+.welcome-sub {
+  color: rgba(149,117,205,0.85);
+  font-size: 1.05rem;
+  line-height: 1.7;
+  max-width: 420px;
+  margin: 0 auto 2.2rem;
+}
+
+/* Pulse glow behind start button */
+.welcome-btn-wrap {
+  position: relative;
+  display: inline-block;
+}
+
+.welcome-btn-wrap::before {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 20px;
+  background: rgba(124,58,237,0.3);
+  filter: blur(18px);
+  animation: glow-pulse 2.5s ease-in-out infinite;
+}
+
+@keyframes glow-pulse {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.05); }
+}
+
+/* Welcome start button override */
+.welcome-screen + div .stButton button,
+[data-testid="stMainBlockContainer"] .stButton button[kind="primary"] {
+  font-size: 1rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.15em !important;
+  height: 56px !important;
+  border-radius: 14px !important;
+  box-shadow: 0 8px 40px rgba(124,58,237,0.5) !important;
+}
+
+/* ═══════════════════════════════════════
+   HEADER
+═══════════════════════════════════════ */
+.tr-header {
+  display: flex;
+  align-items: center;
+  padding: 1.8rem 0 1.4rem;
+  border-bottom: 1px solid rgba(124,58,237,0.15);
+  margin-bottom: 2rem;
+}
+
+.tr-logo {
+  font-family: 'Space Grotesk', sans-serif !important;
+  font-size: 1.55rem;
+  font-weight: 800;
+  color: #e2d9f3;
+  letter-spacing: -0.03em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tr-logo-accent { color: #7c3aed; }
+
+.tr-sub {
+  font-size: 0.65rem;
+  color: rgba(107,91,149,0.75);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin-top: 3px;
+  font-weight: 500;
+}
+
+/* ═══════════════════════════════════════
+   TABS
+═══════════════════════════════════════ */
 .stTabs [data-baseweb="tab-list"] {
-    background: #12052a;
-    border-radius: 10px;
-    padding: 4px;
-    gap: 4px;
+  background: transparent !important;
+  border-bottom: 1px solid rgba(124,58,237,0.15) !important;
+  border-radius: 0 !important;
+  gap: 0 !important;
+  padding: 0 !important;
 }
+
 .stTabs [data-baseweb="tab"] {
-    border-radius: 8px;
-    color: #9575cd;
-    font-weight: 600;
-    padding: 6px 20px;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: rgba(107,91,149,0.8) !important;
+  font-weight: 600 !important;
+  font-size: 0.82rem !important;
+  letter-spacing: 0.04em !important;
+  padding: 12px 26px !important;
+  border-bottom: 2px solid transparent !important;
+  margin-bottom: -1px !important;
+  transition: color 0.2s !important;
 }
+
 .stTabs [aria-selected="true"] {
-    background: #3b0764 !important;
-    color: #e2d9f3 !important;
+  color: #e2d9f3 !important;
+  border-bottom-color: #7c3aed !important;
+  background: transparent !important;
 }
 
-/* ── Métricas ── */
+.stTabs [data-baseweb="tab-panel"] { padding-top: 1.8rem !important; }
+
+/* ═══════════════════════════════════════
+   METRIC CARDS
+═══════════════════════════════════════ */
 div[data-testid="metric-container"] {
-    background: linear-gradient(135deg, #1a0a3e, #12052a);
-    border: 1px solid #4c1d9533;
-    border-radius: 12px;
-    padding: 12px 16px;
-    box-shadow: 0 2px 12px #00000033;
+  background: rgba(255,255,255,0.025) !important;
+  border: 1px solid rgba(124,58,237,0.18) !important;
+  border-top: 2px solid #7c3aed !important;
+  border-radius: 14px !important;
+  padding: 16px 18px 14px !important;
+  transition: border-color 0.2s !important;
 }
-div[data-testid="metric-container"] label { color: #9575cd; font-size: 0.75rem; }
+
+div[data-testid="metric-container"]:hover {
+  border-color: rgba(124,58,237,0.4) !important;
+  border-top-color: #8b5cf6 !important;
+}
+
+div[data-testid="metric-container"] label {
+  color: rgba(107,91,149,0.85) !important;
+  font-size: 0.63rem !important;
+  letter-spacing: 0.2em !important;
+  text-transform: uppercase !important;
+  font-weight: 700 !important;
+}
+
 div[data-testid="metric-container"] [data-testid="stMetricValue"] {
-    color: #e2d9f3; font-size: 1.6rem; font-weight: 700;
+  color: #e2d9f3 !important;
+  font-size: 2rem !important;
+  font-weight: 800 !important;
+  font-family: 'Space Grotesk', sans-serif !important;
+  line-height: 1.1 !important;
 }
 
-/* ── Cards ── */
+/* ═══════════════════════════════════════
+   COMMENT CARDS
+═══════════════════════════════════════ */
 div[data-testid="stVerticalBlockBorderWrapper"] > div {
-    background: linear-gradient(135deg, #140630 0%, #0f0226 100%) !important;
-    border: 1px solid #4c1d9544 !important;
-    border-radius: 14px !important;
-    padding: 1rem 1.2rem !important;
-    box-shadow: 0 2px 16px #00000044;
-    transition: border-color 0.2s;
+  background: rgba(255,255,255,0.022) !important;
+  border: 1px solid rgba(124,58,237,0.18) !important;
+  border-radius: 16px !important;
+  padding: 1.3rem 1.5rem !important;
+  box-shadow: 0 2px 20px rgba(0,0,0,0.25) !important;
+  transition: border-color 0.25s, box-shadow 0.25s !important;
+  backdrop-filter: blur(6px) !important;
 }
+
 div[data-testid="stVerticalBlockBorderWrapper"]:hover > div {
-    border-color: #7c3aed88 !important;
+  border-color: rgba(124,58,237,0.38) !important;
+  box-shadow: 0 4px 32px rgba(124,58,237,0.1) !important;
 }
 
-/* ── Autor tag ── */
+/* ── Author chip ── */
 .author-tag {
-    display: inline-block;
-    background: #3b076422;
-    border: 1px solid #7c3aed55;
-    border-radius: 20px;
-    padding: 2px 12px;
-    color: #c4b5fd;
-    font-weight: 700;
-    font-size: 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(124,58,237,0.1);
+  border: 1px solid rgba(124,58,237,0.28);
+  border-radius: 999px;
+  padding: 3px 12px 3px 8px;
+  color: #c4b5fd;
+  font-weight: 600;
+  font-size: 0.78rem;
+  letter-spacing: 0.01em;
 }
+
 .author-tag.replied {
-    background: #064e3b22;
-    border-color: #10b98155;
-    color: #6ee7b7;
+  background: rgba(16,185,129,0.08);
+  border-color: rgba(16,185,129,0.28);
+  color: #6ee7b7;
 }
 
-/* ── Texto comentario ── */
+/* ── Comment text ── */
 .comment-text {
-    background: #0a011f;
-    border-left: 3px solid #7c3aed66;
-    border-radius: 0 8px 8px 0;
-    padding: 10px 14px;
-    color: #c4b5fd99;
-    font-size: 0.9rem;
-    line-height: 1.5;
-    margin: 8px 0;
+  background: rgba(0,0,0,0.2);
+  border-left: 2px solid rgba(124,58,237,0.45);
+  border-radius: 0 10px 10px 0;
+  padding: 12px 16px;
+  color: rgba(196,181,253,0.65);
+  font-size: 0.875rem;
+  line-height: 1.7;
+  margin: 10px 0;
+  font-style: italic;
 }
 
-/* ── TextArea ── */
-.stTextArea textarea {
-    background: #0f0226 !important;
-    color: #e2d9f3 !important;
-    border: 1px solid #7c3aed55 !important;
-    border-radius: 10px !important;
-    font-size: 0.9rem;
-    resize: vertical;
-}
-.stTextArea textarea:focus {
-    border-color: #7c3aed !important;
-    box-shadow: 0 0 0 2px #7c3aed33 !important;
+/* ── AI reply preview ── */
+.reply-ai {
+  background: rgba(124,58,237,0.07);
+  border: 1px solid rgba(124,58,237,0.22);
+  border-radius: 10px;
+  padding: 12px 16px;
+  color: #c4b5fd;
+  font-size: 0.875rem;
+  line-height: 1.65;
+  margin: 8px 0;
 }
 
-/* ── Botones ── */
-.stButton > button {
-    border-radius: 8px !important;
-    font-weight: 600 !important;
-    transition: all 0.2s !important;
-}
-.stButton > button[kind="primary"] {
-    background: linear-gradient(135deg, #7c3aed, #5b21b6) !important;
-    border: none !important;
-    color: white !important;
-}
-.stButton > button[kind="primary"]:hover {
-    background: linear-gradient(135deg, #8b5cf6, #6d28d9) !important;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px #7c3aed44 !important;
-}
-.stButton > button[kind="secondary"] {
-    background: #1a0a3e !important;
-    border: 1px solid #4c1d9555 !important;
-    color: #9575cd !important;
-}
-.stButton > button[kind="secondary"]:hover {
-    border-color: #7c3aed !important;
-    color: #e2d9f3 !important;
-}
-
-/* ── Respuesta enviada ── */
+/* ── Published reply ── */
 .reply-sent {
-    background: #064e3b22;
-    border: 1px solid #10b98133;
-    border-radius: 10px;
-    padding: 10px 14px;
-    color: #6ee7b7;
-    font-size: 0.88rem;
-    line-height: 1.5;
-    margin: 6px 0;
+  background: rgba(16,185,129,0.06);
+  border: 1px solid rgba(16,185,129,0.18);
+  border-radius: 10px;
+  padding: 12px 16px;
+  color: #6ee7b7;
+  font-size: 0.875rem;
+  line-height: 1.65;
+  margin: 8px 0;
 }
 
-/* ── Divider ── */
-hr { border-color: #4c1d9522 !important; }
+/* ═══════════════════════════════════════
+   TEXTAREA
+═══════════════════════════════════════ */
+.stTextArea textarea {
+  background: rgba(0,0,0,0.25) !important;
+  color: #e2d9f3 !important;
+  border: 1px solid rgba(124,58,237,0.25) !important;
+  border-radius: 10px !important;
+  font-size: 0.875rem !important;
+  line-height: 1.65 !important;
+  resize: vertical !important;
+}
 
-/* ── Warnings/errors ── */
-.stAlert { border-radius: 10px !important; }
+.stTextArea textarea:focus {
+  border-color: #7c3aed !important;
+  box-shadow: 0 0 0 2px rgba(124,58,237,0.18) !important;
+  outline: none !important;
+}
 
-/* ── Lang toggle pill (radio in h2 col) ── */
-[data-testid="stRadio"][aria-label="lang2"] > div,
+/* ═══════════════════════════════════════
+   BUTTONS
+═══════════════════════════════════════ */
+.stButton > button {
+  border-radius: 10px !important;
+  font-weight: 600 !important;
+  font-size: 0.83rem !important;
+  letter-spacing: 0.02em !important;
+  transition: all 0.22s !important;
+  height: 42px !important;
+}
+
+.stButton > button[kind="primary"] {
+  background: linear-gradient(135deg, #7c3aed, #5b21b6) !important;
+  border: none !important;
+  color: #fff !important;
+  box-shadow: 0 4px 18px rgba(124,58,237,0.35) !important;
+}
+
+.stButton > button[kind="primary"]:hover {
+  background: linear-gradient(135deg, #8b5cf6, #6d28d9) !important;
+  box-shadow: 0 6px 28px rgba(124,58,237,0.5) !important;
+  transform: translateY(-1px) !important;
+}
+
+.stButton > button[kind="primary"]:active {
+  transform: translateY(0) !important;
+}
+
+.stButton > button[kind="secondary"] {
+  background: rgba(255,255,255,0.04) !important;
+  border: 1px solid rgba(124,58,237,0.28) !important;
+  color: #9575cd !important;
+}
+
+.stButton > button[kind="secondary"]:hover {
+  background: rgba(124,58,237,0.1) !important;
+  border-color: rgba(124,58,237,0.55) !important;
+  color: #e2d9f3 !important;
+}
+
+/* ═══════════════════════════════════════
+   DIVIDER
+═══════════════════════════════════════ */
+hr {
+  border: none !important;
+  height: 1px !important;
+  background: linear-gradient(to right, transparent, rgba(124,58,237,0.25), transparent) !important;
+  margin: 1rem 0 !important;
+}
+
+/* ═══════════════════════════════════════
+   ALERTS / EXPANDER / PROGRESS
+═══════════════════════════════════════ */
+.stAlert {
+  border-radius: 12px !important;
+  border-width: 1px !important;
+  font-size: 0.875rem !important;
+}
+
+details {
+  background: rgba(255,255,255,0.02) !important;
+  border: 1px solid rgba(124,58,237,0.18) !important;
+  border-radius: 10px !important;
+}
+
+[data-testid="stProgressBar"] > div > div {
+  background: linear-gradient(to right, #7c3aed, #8b5cf6) !important;
+  border-radius: 999px !important;
+}
+
+/* ═══════════════════════════════════════
+   LANG TOGGLE PILL
+═══════════════════════════════════════ */
 div:has(> [data-testid="stRadio"][aria-label="lang2"]) > div > div[role="radiogroup"] {
-    display: inline-flex !important;
-    background: #12052a !important;
-    border: 1px solid #4c1d9555 !important;
-    border-radius: 999px !important;
-    padding: 2px !important;
-    gap: 0 !important;
-    overflow: hidden;
+  display: inline-flex !important;
+  background: rgba(255,255,255,0.04) !important;
+  border: 1px solid rgba(124,58,237,0.28) !important;
+  border-radius: 999px !important;
+  padding: 3px !important;
+  gap: 2px !important;
 }
+
 div:has(> [data-testid="stRadio"][aria-label="lang2"]) label {
-    padding: 3px 10px !important;
-    border-radius: 999px !important;
-    font-size: 1.1rem !important;
-    cursor: pointer;
-    transition: background 0.15s;
+  padding: 4px 12px !important;
+  border-radius: 999px !important;
+  font-size: 1.05rem !important;
+  cursor: pointer !important;
+  transition: background 0.15s !important;
+  margin: 0 !important;
 }
+
 div:has(> [data-testid="stRadio"][aria-label="lang2"]) label:has(input:checked) {
-    background: #3b0764 !important;
+  background: rgba(124,58,237,0.4) !important;
 }
+
 div:has(> [data-testid="stRadio"][aria-label="lang2"]) input[type="radio"] {
-    display: none !important;
+  display: none !important;
+}
+
+/* ═══════════════════════════════════════
+   MODE SELECTOR PILLS
+═══════════════════════════════════════ */
+div:has(> [data-testid="stRadio"][aria-label="modo"]) > div > div[role="radiogroup"] {
+  display: flex !important;
+  background: rgba(255,255,255,0.03) !important;
+  border: 1px solid rgba(124,58,237,0.18) !important;
+  border-radius: 12px !important;
+  padding: 4px !important;
+  gap: 4px !important;
+}
+
+div:has(> [data-testid="stRadio"][aria-label="modo"]) label {
+  flex: 1 !important;
+  text-align: center !important;
+  padding: 9px 16px !important;
+  border-radius: 8px !important;
+  font-size: 0.83rem !important;
+  font-weight: 600 !important;
+  color: rgba(107,91,149,0.9) !important;
+  cursor: pointer !important;
+  transition: all 0.2s !important;
+}
+
+div:has(> [data-testid="stRadio"][aria-label="modo"]) label:has(input:checked) {
+  background: rgba(124,58,237,0.28) !important;
+  color: #e2d9f3 !important;
+}
+
+div:has(> [data-testid="stRadio"][aria-label="modo"]) input[type="radio"] {
+  display: none !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -484,55 +790,64 @@ def post_reply(comment_id, text):
     ).execute()
 
 
-# ── UI ─────────────────────────────────────────────────────
+# ══════════════════════════════════════════════════════════════
+# UI
+# ══════════════════════════════════════════════════════════════
 for key, default in [('iniciado', False), ('lang', 'es')]:
     if key not in st.session_state:
         st.session_state[key] = default
 
+# ── WELCOME SCREEN ────────────────────────────────────────────
 if not st.session_state.iniciado:
     st.markdown("""
     <style>
-    div[data-testid="stMainBlockContainer"] { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:90vh; }
-    .welcome-wrap { display:flex; flex-direction:column; align-items:center; text-align:center; gap:20px; padding:2rem; }
-    div[data-testid="stButton"] button[kind="primary"] {
-        font-size:1.6rem !important;
-        padding:1.1rem 3.5rem !important;
-        border-radius:16px !important;
-        letter-spacing:0.12em !important;
-        box-shadow: 0 6px 32px #7c3aed55 !important;
-        min-width:260px;
+    .block-container { padding-top: 0 !important; }
+    div[data-testid="stMainBlockContainer"] {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
     }
     </style>
-    <div class="welcome-wrap">
-        <div style="font-size:5rem;">▶️</div>
-        <h1 style="font-size:3rem; color:#e2d9f3; margin:0; font-weight:800;">TubeReply</h1>
+    <div class="welcome-screen">
+      <div class="welcome-badge">
+        <div class="welcome-badge-dot"></div>
+        AI · YouTube · Groq
+      </div>
+      <div class="welcome-logo">Tube<span class="welcome-logo-accent">Reply</span></div>
     </div>
     """, unsafe_allow_html=True)
 
-    lc, cc, rc = st.columns([1, 1.4, 1])
+    lc, cc, rc = st.columns([1, 1.3, 1])
     with cc:
         lang_choice = st.radio("lang", ["🇪🇸 Español", "🇺🇸 English"],
                                index=0 if st.session_state.lang == 'es' else 1,
                                horizontal=True, label_visibility="collapsed")
         st.session_state.lang = 'es' if 'Español' in lang_choice else 'en'
-        st.markdown(f'<p style="font-size:1.2rem;color:#9575cd;text-align:center;margin:8px 0 20px;">{t("welcome_sub")}</p>', unsafe_allow_html=True)
+        st.markdown(
+            f'<p style="text-align:center;color:rgba(149,117,205,0.85);font-size:1rem;'
+            f'margin:0.6rem 0 1.8rem;line-height:1.6;">{t("welcome_sub")}</p>',
+            unsafe_allow_html=True
+        )
         if st.button(t('start'), type="primary", use_container_width=True):
             st.session_state.iniciado = True
             st.rerun()
     st.stop()
 
+# ── HEADER ────────────────────────────────────────────────────
 h1, h2 = st.columns([5, 1])
 with h1:
     st.markdown("""
-    <div class="tubereply-header">
+    <div class="tr-header">
       <div>
-        <h1>▶️ TubeReply</h1>
-        <p>Groq + YouTube AI</p>
+        <div class="tr-logo">▶️&nbsp;Tube<span class="tr-logo-accent">Reply</span></div>
+        <div class="tr-sub">AI · YouTube · Groq</div>
       </div>
     </div>
     """, unsafe_allow_html=True)
 with h2:
-    st.markdown("<div style='height:22px'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='padding-top:30px'></div>", unsafe_allow_html=True)
     lang_toggle = st.radio("lang2", ["🇪🇸", "🇺🇸"],
                            index=0 if st.session_state.lang == 'es' else 1,
                            horizontal=True, label_visibility="collapsed")
@@ -545,7 +860,7 @@ if not token_ok:
 
 tab_bot, tab_estilo = st.tabs([t('tab_comments'), t('tab_style')])
 
-# ── TAB: MI ESTILO ─────────────────────────────────────────
+# ── TAB: MI ESTILO ────────────────────────────────────────────
 with tab_estilo:
     st.markdown(t('style_title'))
     st.caption(t('style_sub'))
@@ -569,9 +884,13 @@ with tab_estilo:
         with st.expander(t('style_prompt')):
             st.code(build_prompt(), language=None)
 
-# ── TAB: COMENTARIOS ───────────────────────────────────────
+# ── TAB: COMENTARIOS ──────────────────────────────────────────
 with tab_bot:
-    for key, default in [('comments', []), ('replies', {}), ('done', set()), ('closed', set()), ('published_ids', set()), ('published', 0), ('creditos_usados', 0), ('batch_size', 10), ('modo', 'Asistido')]:
+    for key, default in [
+        ('comments', []), ('replies', {}), ('done', set()), ('closed', set()),
+        ('published_ids', set()), ('published', 0), ('creditos_usados', 0),
+        ('batch_size', 10), ('modo', 'Asistido')
+    ]:
         if key not in st.session_state:
             st.session_state[key] = default
 
@@ -605,27 +924,37 @@ with tab_bot:
             except Exception as e:
                 st.error(t('yt_error', e=e))
 
-    all_visible = [c for c in st.session_state.comments if c['comment_id'] not in st.session_state.done and c['comment_id'] not in st.session_state.closed]
+    all_visible = [c for c in st.session_state.comments
+                   if c['comment_id'] not in st.session_state.done
+                   and c['comment_id'] not in st.session_state.closed]
     all_pending = [c for c in all_visible if c['comment_id'] not in st.session_state.published_ids]
     creditos_restantes = max(0, LIMITE_CREDITOS - st.session_state.creditos_usados)
 
     if st.session_state.comments:
         m1, m2, m3, m4 = st.columns(4)
-        m1.metric(t('pending'), len(all_pending))
+        m1.metric(t('pending'),   len(all_pending))
         m2.metric(t('published'), st.session_state.published)
-        m3.metric(t('skipped'), len(st.session_state.done))
-        m4.metric(t('credits'), f"{creditos_restantes}/{LIMITE_CREDITOS}")
+        m3.metric(t('skipped'),   len(st.session_state.done))
+        m4.metric(t('credits'),   f"{creditos_restantes}/{LIMITE_CREDITOS}")
         st.divider()
 
-    # ── Modo y batch ───────────────────────────────────────
+    # ── Modo y batch ──────────────────────────────────────────
     MODOS = [t('mode_auto'), t('mode_assisted'), t('mode_bulk')]
     if st.session_state.comments:
-        st.markdown(f"**{t('mode_question')}**")
+        st.markdown(
+            f'<p style="font-size:0.72rem;letter-spacing:0.18em;text-transform:uppercase;'
+            f'color:#7c3aed;font-weight:700;margin-bottom:8px;">{t("mode_question")}</p>',
+            unsafe_allow_html=True
+        )
         modo = st.radio("modo", MODOS, index=1, horizontal=True, label_visibility="collapsed")
         st.session_state.modo = modo
 
         if modo != t('mode_auto'):
-            st.markdown(f"**{t('batch_label')}**")
+            st.markdown(
+                f'<p style="font-size:0.72rem;letter-spacing:0.18em;text-transform:uppercase;'
+                f'color:rgba(107,91,149,0.8);font-weight:700;margin:12px 0 6px;">{t("batch_label")}</p>',
+                unsafe_allow_html=True
+            )
             batch_size = st.radio(
                 "batch", [1, 10, 30, 50, 100],
                 index=[1, 10, 30, 50, 100].index(st.session_state.batch_size),
@@ -650,7 +979,9 @@ with tab_bot:
                 prog.progress((i + 1) / len(sin_generar), text=t('gen_progress', i=i+1, n=len(sin_generar)))
             prog.empty()
         if publicar:
-            listos = [c for c in comentarios if c['comment_id'] in st.session_state.replies and c['comment_id'] not in st.session_state.published_ids]
+            listos = [c for c in comentarios
+                      if c['comment_id'] in st.session_state.replies
+                      and c['comment_id'] not in st.session_state.published_ids]
             prog = st.progress(0, text=t('publishing'))
             for i, c in enumerate(listos):
                 try:
@@ -664,24 +995,42 @@ with tab_bot:
 
     def render_card(c, cid, is_published, mode_key):
         with st.container(border=True):
-            col_a, col_b = st.columns([4, 1])
+            col_a, col_b = st.columns([5, 1])
             with col_a:
-                tag = f'<span class="author-tag replied">✅ {c["author"]}</span>' if is_published else f'<span class="author-tag">👤 {c["author"]}</span>'
-                st.markdown(tag, unsafe_allow_html=True)
+                tag_class = "author-tag replied" if is_published else "author-tag"
+                icon = "✅" if is_published else "👤"
+                st.markdown(f'<span class="{tag_class}">{icon} {c["author"]}</span>', unsafe_allow_html=True)
             with col_b:
-                st.markdown(f'<a href="https://youtu.be/{c["video_id"]}" target="_blank" style="color:#9575cd;font-size:0.8rem;">🎬</a>', unsafe_allow_html=True)
+                st.markdown(
+                    f'<div style="text-align:right;padding-top:2px;">'
+                    f'<a href="https://youtu.be/{c["video_id"]}" target="_blank" '
+                    f'style="color:#6b5b95;font-size:0.78rem;text-decoration:none;'
+                    f'border:1px solid rgba(107,91,149,0.3);border-radius:6px;padding:3px 8px;">'
+                    f'▶ ver</a></div>',
+                    unsafe_allow_html=True
+                )
             st.markdown(f'<div class="comment-text">{c["text"][:400]}</div>', unsafe_allow_html=True)
             if is_published:
-                st.markdown(f'<div class="reply-sent">{t("replied")} {st.session_state.replies.get(cid, "")}</div>', unsafe_allow_html=True)
+                st.markdown(
+                    f'<div class="reply-sent">{t("replied")} {st.session_state.replies.get(cid, "")}</div>',
+                    unsafe_allow_html=True
+                )
                 if st.button(t('close'), key=f"close_{mode_key}_{cid}", use_container_width=True):
                     st.session_state.closed.add(cid)
                     st.rerun()
             elif cid in st.session_state.replies:
-                st.markdown(f'<div class="reply-sent" style="border-color:#7c3aed55;color:#c4b5fd;">🤖 {st.session_state.replies[cid]}</div>', unsafe_allow_html=True)
+                st.markdown(
+                    f'<div class="reply-ai">🤖 {st.session_state.replies[cid]}</div>',
+                    unsafe_allow_html=True
+                )
             else:
-                st.caption(t('pending_gen'))
+                st.markdown(
+                    '<p style="color:rgba(107,91,149,0.6);font-size:0.78rem;margin:4px 0;">'
+                    f'⏳ {t("pending_gen")}</p>',
+                    unsafe_allow_html=True
+                )
 
-    # ── MODO AUTOMÁTICO ────────────────────────────────────
+    # ── MODO AUTOMÁTICO ───────────────────────────────────────
     if st.session_state.modo == t('mode_auto'):
         if not st.session_state.comments:
             st.info(t('start_hint'))
@@ -696,7 +1045,7 @@ with tab_bot:
             else:
                 st.warning(t('auto_no_credits', r=creditos_restantes, n=len(pending)))
 
-    # ── MODO BULK ──────────────────────────────────────────
+    # ── MODO BULK ─────────────────────────────────────────────
     elif st.session_state.modo == t('mode_bulk'):
         if not st.session_state.comments:
             st.info(t('start_hint'))
@@ -708,7 +1057,8 @@ with tab_bot:
             ba1, ba2 = st.columns(2)
             with ba1:
                 label = t('bulk_generate', n=len(sin_generar)) if sin_generar else t('bulk_all_done')
-                if st.button(label, type="primary", use_container_width=True, disabled=not sin_generar or creditos_restantes < len(sin_generar)):
+                if st.button(label, type="primary", use_container_width=True,
+                             disabled=not sin_generar or creditos_restantes < len(sin_generar)):
                     run_batch(sin_generar, generar=True, publicar=False)
                     st.rerun()
             with ba2:
@@ -721,7 +1071,7 @@ with tab_bot:
                 cid = c['comment_id']
                 render_card(c, cid, cid in st.session_state.published_ids, 'bulk')
 
-    # ── MODO ASISTIDO ──────────────────────────────────────
+    # ── MODO ASISTIDO ─────────────────────────────────────────
     elif st.session_state.modo == t('mode_assisted'):
         if not st.session_state.comments:
             st.info(t('start_hint'))
@@ -732,18 +1082,31 @@ with tab_bot:
                 cid = c['comment_id']
                 is_published = cid in st.session_state.published_ids
                 with st.container(border=True):
-                    col_a, col_b = st.columns([4, 1])
+                    col_a, col_b = st.columns([5, 1])
                     with col_a:
-                        tag = f'<span class="author-tag replied">✅ {c["author"]}</span>' if is_published else f'<span class="author-tag">👤 {c["author"]}</span>'
-                        st.markdown(tag, unsafe_allow_html=True)
+                        tag_class = "author-tag replied" if is_published else "author-tag"
+                        icon = "✅" if is_published else "👤"
+                        st.markdown(f'<span class="{tag_class}">{icon} {c["author"]}</span>', unsafe_allow_html=True)
                     with col_b:
-                        st.markdown(f'<a href="https://youtu.be/{c["video_id"]}" target="_blank" style="color:#9575cd;font-size:0.8rem;">🎬</a>', unsafe_allow_html=True)
+                        st.markdown(
+                            f'<div style="text-align:right;padding-top:2px;">'
+                            f'<a href="https://youtu.be/{c["video_id"]}" target="_blank" '
+                            f'style="color:#6b5b95;font-size:0.78rem;text-decoration:none;'
+                            f'border:1px solid rgba(107,91,149,0.3);border-radius:6px;padding:3px 8px;">'
+                            f'▶ ver</a></div>',
+                            unsafe_allow_html=True
+                        )
                     st.markdown(f'<div class="comment-text">{c["text"][:400]}</div>', unsafe_allow_html=True)
+
                     if is_published:
-                        st.markdown(f'<div class="reply-sent">{t("replied")} {st.session_state.replies.get(cid, "")}</div>', unsafe_allow_html=True)
+                        st.markdown(
+                            f'<div class="reply-sent">{t("replied")} {st.session_state.replies.get(cid, "")}</div>',
+                            unsafe_allow_html=True
+                        )
                         if st.button(t('close'), key=f"close_a_{cid}", use_container_width=True):
                             st.session_state.closed.add(cid)
                             st.rerun()
+
                     elif cid not in st.session_state.replies:
                         if creditos_restantes == 0:
                             st.warning(t('no_credits'))
@@ -769,7 +1132,8 @@ with tab_bot:
                     else:
                         reply_text = st.session_state.replies[cid]
                         reply = st.text_area("r", value=reply_text, key=f"ta_{cid}",
-                                            height=textarea_height(reply_text), label_visibility="collapsed")
+                                             height=textarea_height(reply_text),
+                                             label_visibility="collapsed")
                         b1, b2, b3 = st.columns([3, 1, 1])
                         with b1:
                             if st.button(t('publish'), key=f"pub_{cid}", type="primary", use_container_width=True):
