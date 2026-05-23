@@ -296,6 +296,31 @@ hr { border-color: #4c1d9522 !important; }
 
 /* ── Warnings/errors ── */
 .stAlert { border-radius: 10px !important; }
+
+/* ── Lang toggle pill (radio in h2 col) ── */
+[data-testid="stRadio"][aria-label="lang2"] > div,
+div:has(> [data-testid="stRadio"][aria-label="lang2"]) > div > div[role="radiogroup"] {
+    display: inline-flex !important;
+    background: #12052a !important;
+    border: 1px solid #4c1d9555 !important;
+    border-radius: 999px !important;
+    padding: 2px !important;
+    gap: 0 !important;
+    overflow: hidden;
+}
+div:has(> [data-testid="stRadio"][aria-label="lang2"]) label {
+    padding: 3px 10px !important;
+    border-radius: 999px !important;
+    font-size: 1.1rem !important;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+div:has(> [data-testid="stRadio"][aria-label="lang2"]) label:has(input:checked) {
+    background: #3b0764 !important;
+}
+div:has(> [data-testid="stRadio"][aria-label="lang2"]) input[type="radio"] {
+    display: none !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -507,7 +532,7 @@ with h1:
     </div>
     """, unsafe_allow_html=True)
 with h2:
-    st.markdown("<div style='height:18px'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='height:22px'></div>", unsafe_allow_html=True)
     lang_toggle = st.radio("lang2", ["🇪🇸", "🇺🇸"],
                            index=0 if st.session_state.lang == 'es' else 1,
                            horizontal=True, label_visibility="collapsed")
